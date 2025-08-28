@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1">
+    <meta name="description" content="AI Chat Local - Cliente web ligero para interactuar con modelos locales vía LMStudio. Desarrollado por Feer.">
+    <meta name="color-scheme" content="dark light">
+    <meta name="theme-color" content="#0f0f23" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+    <title>AI Chat Local - by Feer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'dark-bg': '#0f0f23',
+                        'dark-surface': '#1a1a2e',
+                        'dark-border': '#16213e',
+                        'chat-user': '#2d3748',
+                        'chat-assistant': '#1a202c',
+                        'accent-blue': '#3b82f6',
+                        'accent-purple': '#8b5cf6',
+                        'text-primary': '#f7fafc',
+                        'text-secondary': '#cbd5e0',
+                        'text-muted': '#a0aec0'
+                    },
+                    fontFamily: {
+                        'inter': ['Inter', 'system-ui', 'sans-serif']
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-out',
+                        'slide-up': 'slideUp 0.4s ease-out',
+                        'pulse-soft': 'pulseSoft 2s ease-in-out infinite',
+                        'typing': 'typing 1.5s ease-in-out infinite'
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' }
+                        },
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' }
+                        },
+                        pulseSoft: {
+                            '0%, 100%': { opacity: '0.8' },
+                            '50%': { opacity: '1' }
+                        },
+                        typing: {
+                            '0%, 100%': { opacity: '0.2' },
+                            '50%': { opacity: '1' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-HoA1J5rG5Jpvwqf+8j4ZP6j6kfq7F5v6d6JwSxZsWg1g8Yb2KX6H7GkQKQZQKZBkP5uGz0rKq5V6D5ZK5g5Yw==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        
+        * {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+        
+        /* Tema oscuro principal */
+        .dark { background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%); }
+
+        :root {
+            --vh: 1vh; /* fallback */
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-top: env(safe-area-inset-top, 0px);
+        }
+
+        body { min-height: calc(var(--vh) * 100); }
+        
+        /* Efectos de vidrio mejorados */
+        .glass-card {
+            background: rgba(26, 26, 46, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .glass-sidebar {
+            background: rgba(15, 15, 35, 0.8);
+            backdrop-filter: blur(25px);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Burbujas de chat estilo ChatGPT */
+        .message-user {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            border-radius: 18px 18px 4px 18px;
+            color: white;
+            margin-left: auto;
+            max-width: 85%;
+        }
+        
+        .message-assistant {
+            background: rgba(45, 55, 72, 0.8);
+            border-radius: 18px 18px 18px 4px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 85%;
+        }
+        
+        /* Scrollbar personalizado */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        /* Botones con efecto hover mejorado */
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+        }
+        
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        
+        /* Botón copiar código */
+        .code-block-wrapper { position: relative; }
+        .copy-btn {
+            position: absolute;
+            top: .5rem; right: .5rem;
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(6px);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: #cbd5e0;
+            font-size: .65rem;
+            padding: .35rem .55rem;
+            border-radius: .5rem;
+            cursor: pointer;
+            display: flex; align-items: center; gap:.35rem;
+            transition: background .2s,color .2s,border-color .2s;
+        }
+        .copy-btn:hover { background: rgba(255,255,255,0.15); color:#fff; }
+        .copy-btn.copied { color:#48bb78; border-color:#48bb78; }
+
+        /* Efectos de entrada para mensajes */
+        .message-enter {
+            animation: slideUp 0.4s ease-out;
+        }
+        
+        /* Indicador de escritura */
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            background: #a0aec0;
+            border-radius: 50%;
+            animation: typing 1.5s ease-in-out infinite;
+        }
+        
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        /* Sidebar móvil mejorada */
+        .sidebar-mobile {
+            transform: translateX(-100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .sidebar-mobile.open {
+            transform: translateX(0);
+        }
+        
+        /* Input mejorado */
+        .input-enhanced {
+            background: rgba(26, 26, 46, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .input-enhanced:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            background: rgba(26, 26, 46, 0.8);
+        }
+        
+        /* Responsive mejorado */
+        @media (max-width: 768px) {
+            .container { padding: 0.5rem 0.5rem calc(0.5rem + var(--safe-bottom)); height: calc(var(--vh) * 100); }
+            .chat-area { height: calc(var(--vh) * 100 - 148px - var(--safe-bottom)); }
+            #chat-messages .glass, #chat-messages .message-assistant, #chat-messages .message-user { padding: 0.75rem !important; }
+            header.glass-card { padding: 0.9rem 1rem !important; }
+            #send-btn { min-width: 90px; }
+            /* Prevenir zoom en iOS */
+            input, textarea, select { font-size: 16px !important; }
+            /* Mejores áreas táctiles */
+            button, .clickable { min-height: 44px; min-width: 44px; }
+        }
+        
+        @media (max-width: 640px) {
+            .message-user, .message-assistant {
+                max-width: 95%;
+            }
+        }
+        
+        /* Micro-interacciones */
+        .hover-lift {
+            transition: transform 0.2s ease;
+        }
+        
+        .hover-lift:hover {
+            transform: translateY(-2px);
+        }
+        
+        /* Estados de conexión */
+        .status-online {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            animation: pulseSoft 2s ease-in-out infinite;
+        }
+        
+        .status-offline {
+            background: linear-gradient(135deg, #f56565, #e53e3e);
+        }
+        
+        .status-connecting {
+            background: linear-gradient(135deg, #ed8936, #dd6b20);
+            animation: pulseSoft 1s ease-in-out infinite;
+        }
+        .copy-btn.copied { color:#48bb78; border-color:#48bb78; }
+
+        /* Mejora scroll iOS (rebote suave y evita doble scroll) */
+        .chat-area { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+    textarea { -webkit-user-select: text; user-select:text; }
+
+        /* Optimizar área de input para dedos */
+        #user-input { line-height: 1.35; padding-bottom: 2.4rem; }
+        .chat-input-wrapper { position: relative; }
+        .input-hint { position:absolute; right:.75rem; bottom:.45rem; font-size:.65rem; opacity:.65; }
+
+        /* Ajustes ultra-pequeño (menos de 360px) */
+        @media (max-width: 360px) { 
+            h1 { font-size:1.4rem !important; }
+            .sidebar-mobile { width: 100%; }
+            .message-user, .message-assistant { max-width: 100%; }
+        }
+    </style>
+</head>
+<body class="dark min-h-screen text-text-primary antialiased">
+    <div class="container mx-auto h-screen flex flex-col max-w-7xl p-2 sm:p-4">
+        <!-- Header Mejorado -->
+        <header class="glass-card rounded-2xl p-4 sm:p-6 mb-4 animate-fade-in">
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div class="flex items-center space-x-4 w-full sm:w-auto">
+                    <!-- Logo mejorado -->
+                    <div class="relative">
+                        <div class="absolute inset-0 bg-gradient-to-r from-accent-blue to-accent-purple rounded-xl blur opacity-50"></div>
+                        <div class="relative bg-gradient-to-r from-accent-blue to-accent-purple p-3 rounded-xl hover-lift">
+                            <i class="fas fa-robot text-xl text-white"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="flex-1 sm:flex-none">
+                        <h1 class="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-text-primary via-accent-blue to-accent-purple bg-clip-text text-transparent">
+                            AI Chat Local
+                        </h1>
+                        <p class="text-sm text-text-muted font-medium">
+                            Desarrollado por <span class="text-accent-blue font-semibold">Feer</span>
+                        </p>
+                    </div>
+                    
+                    <!-- Mobile menu button -->
+                    <button id="mobile-menu-btn" class="md:hidden glass-card p-3 rounded-xl hover:bg-white/10 transition-all">
+                        <i class="fas fa-bars text-lg"></i>
+                    </button>
+                </div>
+                
+                <!-- Status y controles -->
+                <div class="flex items-center space-x-3 w-full sm:w-auto justify-center sm:justify-end">
+                    <div id="status-container" class="flex items-center space-x-3 glass-card px-4 py-2 rounded-full">
+                        <div id="status-dot" class="w-3 h-3 rounded-full status-connecting"></div>
+                        <span id="status-text" class="text-sm font-medium">Conectando...</span>
+                    </div>
+                    
+                    <button id="theme-toggle" class="glass-card p-3 rounded-full hover:bg-white/10 transition-all hover-lift">
+                        <i class="fas fa-moon text-lg"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Mejorado -->
+        <div class="flex-1 flex flex-col md:flex-row gap-4 overflow-hidden">
+            <!-- Mobile Sidebar Overlay -->
+            <div id="mobile-sidebar-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden hidden transition-opacity duration-300"></div>
+            
+            <!-- Sidebar Mejorada -->
+            <aside id="sidebar" class="sidebar-mobile md:relative md:translate-x-0 fixed top-0 left-0 z-50 w-80 h-full glass-sidebar flex flex-col p-6 space-y-6" role="navigation" aria-label="Barra lateral">
+                <!-- Close button for mobile -->
+                <div class="md:hidden flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold">Menú</h2>
+                    <button id="close-sidebar-btn" class="glass-card p-2 rounded-lg hover:bg-white/10 transition-all">
+                        <i class="fas fa-times text-lg"></i>
+                    </button>
+                </div>
+                
+                <!-- Chat Management Mejorado -->
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold flex items-center text-text-primary">
+                            <i class="fas fa-comment-dots mr-3 text-accent-blue"></i>
+                            Conversaciones
+                        </h3>
+                        <div class="flex items-center space-x-2">
+                            <button id="clear-all-chats-btn" class="glass-card p-2 rounded-lg hover:bg-red-500/20 transition-all hover-lift text-red-400 hover:text-red-300" title="Eliminar todas las conversaciones">
+                                <i class="fas fa-trash-alt text-xs"></i>
+                            </button>
+                            <button id="new-chat-btn" class="btn-primary p-2 rounded-lg transition-all hover-lift" title="Nueva conversación">
+                                <i class="fas fa-plus text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="chats-list" class="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
+                        <!-- Los chats se cargarán aquí dinámicamente -->
+                        <div class="glass-card p-3 rounded-lg border border-white/10 hover:bg-white/5 transition-all cursor-pointer">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-2 h-2 bg-accent-blue rounded-full"></div>
+                                <span class="text-sm text-text-secondary truncate">Conversación actual</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Model Selection Mejorado -->
+                <div class="space-y-3">
+                    <label class="block text-sm font-semibold text-text-primary flex items-center">
+                        <i class="fas fa-microchip mr-3 text-accent-purple"></i>
+                        Modelo AI
+                    </label>
+                    <select id="model-select" class="w-full input-enhanced rounded-xl px-4 py-3 text-sm text-text-primary focus:outline-none">
+                        <option value="">Cargando modelos...</option>
+                    </select>
+                </div>
+
+                <!-- Settings Mejorados -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-semibold flex items-center text-text-primary">
+                        <i class="fas fa-sliders-h mr-3 text-accent-blue"></i>
+                        Configuración
+                    </h3>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-text-secondary mb-2">Tokens máximos</label>
+                            <input type="number" id="max-tokens" value="300" min="1" max="2048" 
+                                   class="w-full input-enhanced rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-text-secondary mb-2">
+                                Temperatura 
+                                <span id="temperature-value" class="text-accent-blue font-semibold">0.5</span>
+                            </label>
+                            <input type="range" id="temperature" min="0" max="2" step="0.1" value="0.5"
+                                   class="w-full h-2 bg-dark-border rounded-lg appearance-none cursor-pointer">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions Mejoradas -->
+                <div class="space-y-3">
+                    <button id="clear-chat" class="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2 hover-lift">
+                        <i class="fas fa-trash-alt"></i>
+                        <span>Limpiar Chat</span>
+                    </button>
+                </div>
+
+                <!-- Stats Mejoradas -->
+                <div class="glass-card rounded-xl p-4 border border-white/10 mt-auto">
+                    <h3 class="text-sm font-semibold text-text-secondary mb-3 flex items-center">
+                        <i class="fas fa-chart-line mr-2 text-accent-purple"></i>
+                        Estadísticas
+                    </h3>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between items-center">
+                            <span class="text-text-muted">Modelo:</span>
+                            <span id="current-model" class="text-accent-blue font-medium truncate ml-2">-</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-text-muted">Tokens:</span>
+                            <span id="tokens-count" class="text-green-400 font-medium">0</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-text-muted">Mensajes:</span>
+                            <span id="message-count" class="text-accent-purple font-medium">0</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Chat Area Mejorada -->
+            <main class="flex-1 glass-card rounded-2xl flex flex-col overflow-hidden" role="main">
+                <!-- Chat Messages -->
+                <div id="chat-messages" class="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4 custom-scrollbar chat-area">
+                    <!-- Welcome Message Mejorado -->
+                    <div class="flex items-start space-x-3 animate-slide-up">
+                        <div class="relative flex-shrink-0">
+                            <div class="absolute inset-0 bg-gradient-to-r from-accent-blue to-accent-purple rounded-full blur opacity-50"></div>
+                            <div class="relative bg-gradient-to-r from-accent-blue to-accent-purple p-2 rounded-full">
+                                <i class="fas fa-robot text-white"></i>
+                            </div>
+                        </div>
+                        <div class="message-assistant p-4">
+                            <div class="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
+                                <span class="font-semibold text-accent-blue">AI Assistant</span>
+                                <span class="text-xs text-text-muted bg-dark-surface px-3 py-1 rounded-full w-fit">
+                                    Qwen3-4B-Thinking
+                                </span>
+                            </div>
+                            
+                            <div class="text-text-secondary leading-relaxed space-y-3">
+                                <p>
+                                    ¡Hola! 👋 Soy tu asistente de AI local creado y entrenado por
+                                    <strong class="text-accent-blue">Feer</strong>.
+                                </p>
+                                <p>
+                                    Estoy aquí para ayudarte con cualquier pregunta o conversación que tengas. 
+                                    ¿En qué puedo ayudarte hoy?
+                                </p>
+                            </div>
+                            
+                            <div class="mt-4 pt-4 border-t border-white/10">
+                                <p class="text-xs text-text-muted mb-3">Preguntas de ejemplo:</p>
+                                <div class="flex flex-col sm:flex-row flex-wrap gap-2">
+                                    <button onclick="insertExampleQuestion('¿Cuál es la capital de Francia?')" 
+                                            class="glass-card hover:bg-white/10 text-xs px-3 py-2 rounded-full border border-white/10 transition-all text-left hover-lift">
+                                        🌍 Geografía básica
+                                    </button>
+                                    <button onclick="insertExampleQuestion('Explícame qué es la inteligencia artificial')" 
+                                            class="glass-card hover:bg-white/10 text-xs px-3 py-2 rounded-full border border-white/10 transition-all text-left hover-lift">
+                                        🤖 Tecnología
+                                    </button>
+                                    <button onclick="insertExampleQuestion('Escribe un poema sobre la programación')" 
+                                            class="glass-card hover:bg-white/10 text-xs px-3 py-2 rounded-full border border-white/10 transition-all text-left hover-lift">
+                                        ✨ Creatividad
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="text-xs text-text-muted mt-3 flex items-center">
+                                <i class="far fa-clock mr-2"></i>
+                                <span id="welcome-time"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Input Mejorado -->
+                <div class="p-4 sm:p-6 border-t border-white/10">
+                <div class="p-4 sm:p-6 border-t border-white/10 pb-[calc(1rem+var(--safe-bottom))]">
+                    <div class="flex flex-col sm:flex-row gap-3 chat-input-wrapper">
+                        <div class="flex-1 relative" id="input-container">
+                            <textarea 
+                                id="user-input" 
+                                placeholder="Escribe tu mensaje aquí... (Shift+Enter para nueva línea, Enter para enviar)"
+                                rows="1"
+                                class="w-full input-enhanced rounded-xl px-4 py-3 text-text-primary placeholder-text-muted focus:outline-none resize-none min-h-[50px] max-h-32"
+                            ></textarea>
+                            <div class="input-hint text-text-muted hidden sm:block">
+                                <kbd class="px-1 py-0.5 bg-dark-surface rounded text-[10px]">Enter</kbd> enviar
+                            </div>
+                        </div>
+                        <button id="send-btn" class="btn-primary font-semibold px-6 py-3 rounded-xl flex items-center justify-center space-x-2 min-w-[120px] transition-all">
+                            <i class="fas fa-paper-plane send-icon"></i>
+                            <i class="fas fa-spinner fa-spin loading-icon hidden"></i>
+                            <span class="send-text">Enviar</span>
+                            <span class="loading-text hidden">Enviando...</span>
+                        </button>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Footer Mejorado -->
+        <footer class="mt-4 text-center text-sm text-text-muted">
+            <p class="flex items-center justify-center space-x-2">
+                <span>🚀</span>
+                <strong class="text-text-secondary">AI Chat Local</strong>
+                <span>-</span>
+                <span>Desarrollado con</span>
+                <span class="text-red-400">❤️</span>
+                <span>por</span>
+                <a href="https://github.com/FxxMorgan" target="_blank" class="text-accent-blue hover:text-accent-purple font-semibold transition-colors">
+                    Feer
+                </a>
+            </p>
+            <p class="text-xs text-text-muted mt-1">
+                Powered by LMStudio & Node.js
+            </p>
+        </footer>
+    </div>
+
+    <script src="script.js" defer></script>
+        <script>
+            // Ajustar --vh para móviles (100vh real sin barra de URL)
+            function setRealVh(){
+                const vh = window.innerHeight * 0.01;document.documentElement.style.setProperty('--vh', `${vh}px`);
+            }
+            window.addEventListener('resize', setRealVh); setRealVh();
+        </script>
+</body>
+</html>
